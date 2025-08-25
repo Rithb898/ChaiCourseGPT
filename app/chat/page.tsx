@@ -846,7 +846,7 @@ const HomePage = () => {
               <div className="mt-8 rounded-xl border border-orange-500/20 bg-gradient-to-r from-orange-500/10 to-orange-600/10 p-4">
                 <p className="text-sm text-orange-200">
                   <span className="font-semibold">Pro Tip:</span> Try asking
-                  "Explain React hooks" or "Show me JavaScript examples"
+                  "How to setup venv in python?" or "what is fs module in nodejs?"
                 </p>
               </div>
             </div>

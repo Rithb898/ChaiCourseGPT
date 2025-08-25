@@ -189,7 +189,7 @@ async function rerankDocsWithHyDE(
   if (docs.length === 0) return [];
 
   const { text } = await generateText({
-    model: "openai/gpt-4o-mini",
+    model: "openai/gpt-5-nano",
     system: RERANKING_SYSTEM_PROMPT,
     messages: [
       {
@@ -281,7 +281,7 @@ ${doc.pageContent}`;
 
           // 3. Stream OpenAI response
           const completion = await openai.chat.completions.create({
-            model: "openai/gpt-4.1-mini",
+            model: "anthropic/claude-3.5-haiku",
             messages: [{ role: "system", content: systemPrompt }, ...messages],
             stream: true,
             temperature: 0.1, // Lower temperature for more consistent responses
