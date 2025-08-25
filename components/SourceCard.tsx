@@ -1,4 +1,4 @@
-import { BookOpen, Play, Code2, ExternalLink, Clock } from "lucide-react";
+import { BookOpen, Play, Code2 } from "lucide-react";
 import { CardEnhanced } from "@/components/ui/card-enhanced";
 import { BadgeEnhanced } from "@/components/ui/badge-enhanced";
 import { utils } from "@/lib/design-system";
@@ -35,21 +35,7 @@ export const SourceCard = ({
     return colors[tech.toLowerCase()] || colors.default;
   };
 
-  // Calculate duration
-  const calculateDuration = (start: string, end: string) => {
-    try {
-      const startTime = start.split(':').map(Number);
-      const endTime = end.split(':').map(Number);
-      const startSeconds = startTime[0] * 60 + startTime[1];
-      const endSeconds = endTime[0] * 60 + endTime[1];
-      const durationSeconds = endSeconds - startSeconds;
-      const minutes = Math.floor(durationSeconds / 60);
-      const seconds = durationSeconds % 60;
-      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    } catch {
-      return '0:00';
-    }
-  };
+
 
   return (
     <CardEnhanced

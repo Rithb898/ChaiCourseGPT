@@ -14,6 +14,24 @@ const openai = new OpenAI({
   apiKey: process.env.AI_GATEWAY_API_KEY,
 });
 
+interface DocumentChunk {
+  metadata: {
+    lessonNumber?: string;
+    lessonTopic?: string;
+    technology?: string;
+    startTime?: string;
+    endTime?: string;
+    segmentId?: string;
+  };
+  pageContent: string;
+  retrievalScore?: number;
+  retrievalSources?: Array<{
+    queryType: string;
+    query: string;
+    weight: number;
+  }>;
+}
+
 interface ConsolidatedSource {
   id: string;
   technology: string;
@@ -24,7 +42,7 @@ interface ConsolidatedSource {
   relevanceScore: number;
 }
 
-function consolidateSources(chunks: any[]): ConsolidatedSource[] {
+function consolidateSources(chunks: DocumentChunk[]): ConsolidatedSource[] {
   const lessonMap = new Map();
 
   // Group chunks by lesson
@@ -118,19 +136,19 @@ async function rewriteQueryWithHyDE(userInput: string) {
 }
 
 // --- HyDE-Enhanced Retrieval ---
-async function retrieveWithHyDE(userInput: string, retriever: any) {
+async function retrieveWithHyDE(userInput: string, retriever: { invoke: (query: string) => Promise<DocumentChunk[]> }) {
   const { mainQuery, subQueries, hypotheticalDocument } =
     await rewriteQueryWithHyDE(userInput);
 
   // Combine all queries including the hypothetical document
-  let queries = [
+  const queries = [
     userInput, // Original query
     mainQuery, // Rewritten main query
     ...subQueries, // Sub-queries
     hypotheticalDocument, // HyDE document
   ];
 
-  let allDocs: any[] = [];
+  const allDocs: DocumentChunk[] = [];
   const docScores = new Map(); // Track which retrieval method found each doc
 
   // Retrieve with each query and track sources
@@ -138,7 +156,7 @@ async function retrieveWithHyDE(userInput: string, retriever: any) {
     const query = queries[i];
     const docs = await retriever.invoke(query);
 
-    docs.forEach((doc: any) => {
+    docs.forEach((doc: DocumentChunk) => {
       const docId = doc.metadata.segmentId;
       if (!docScores.has(docId)) {
         docScores.set(docId, {
@@ -183,7 +201,7 @@ async function retrieveWithHyDE(userInput: string, retriever: any) {
 // --- Enhanced Re-ranking with HyDE Context ---
 async function rerankDocsWithHyDE(
   userInput: string,
-  docs: any[],
+  docs: DocumentChunk[],
   hydeDocument: string,
 ) {
   if (docs.length === 0) return [];

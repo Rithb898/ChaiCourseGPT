@@ -19,7 +19,6 @@ import {
   Sparkles,
   Github,
   Linkedin,
-  X,
   Twitter,
 } from "lucide-react";
 
@@ -130,7 +129,7 @@ const LandingPage = () => {
                   <span className="font-semibold text-orange-400">
                     Seedhi si baat hai
                   </span>{" "}
-                  - Your AI coding instructor powered by Hitesh Choudhary's
+                  - Your AI coding instructor powered by Hitesh Choudhary&apos;s
                   teaching style.
                 </p>
                 <p className="mt-4 text-base leading-relaxed text-gray-400 sm:text-lg md:text-xl">
@@ -203,8 +202,8 @@ const LandingPage = () => {
                 Why Choose ChaiCourseGPT?
               </h2>
               <p className="mx-auto max-w-6xl text-xl text-gray-300">
-                Haan ji! Here's what makes our AI assistant special for your
-                coding journey
+                Haan ji! Here&apos;s what makes our AI assistant special for
+                your coding journey
               </p>
             </div>
 
@@ -223,8 +222,8 @@ const LandingPage = () => {
                   </h3>
                   <p className="leading-relaxed text-gray-400">
                     Powered by advanced AI that understands your course content
-                    and provides personalized explanations in Hitesh's teaching
-                    style.
+                    and provides personalized explanations in Hitesh&apos;s
+                    teaching style.
                   </p>
                 </div>
               </CardEnhanced>
@@ -305,8 +304,8 @@ const LandingPage = () => {
                   Get Smart Answers
                 </h3>
                 <p className="leading-relaxed text-gray-400">
-                  Receive detailed explanations in Hitesh's teaching style with
-                  code examples, best practices, and practical insights.
+                  Receive detailed explanations in Hitesh&apos;s teaching style
+                  with code examples, best practices, and practical insights.
                 </p>
               </div>
 
@@ -337,8 +336,8 @@ const LandingPage = () => {
                 What Students Say
               </h2>
               <p className="mx-auto max-w-6xl text-xl text-gray-300">
-                Real feedback from learners who've experienced the ChaiCourseGPT
-                difference
+                Real feedback from learners who&apos;ve experienced the
+                ChaiCourseGPT difference
               </p>
             </div>
 
@@ -354,9 +353,9 @@ const LandingPage = () => {
                     ))}
                   </div>
                   <p className="leading-relaxed text-gray-300">
-                    "Haan ji, this is exactly what I needed! The explanations
-                    are so clear and the Hinglish style makes everything easy to
-                    understand."
+                    &quot;Haan ji, this is exactly what I needed! The
+                    explanations are so clear and the Hinglish style makes
+                    everything easy to understand.&quot;
                   </p>
                   <div className="flex items-center gap-3">
                     <AvatarEnhanced
@@ -388,8 +387,9 @@ const LandingPage = () => {
                     ))}
                   </div>
                   <p className="leading-relaxed text-gray-300">
-                    "The instant responses and code examples saved me hours of
-                    debugging. It's like having Hitesh sir available 24/7!"
+                    &quot;The instant responses and code examples saved me
+                    hours of debugging. It&apos;s like having Hitesh sir
+                    available 24/7!&quot;
                   </p>
                   <div className="flex items-center gap-3">
                     <AvatarEnhanced
@@ -421,8 +421,9 @@ const LandingPage = () => {
                     ))}
                   </div>
                   <p className="leading-relaxed text-gray-300">
-                    "Perfect for quick doubts and concept clarification. The
-                    source references help me find exact video timestamps!"
+                    &quot;Perfect for quick doubts and concept clarification.
+                    The source references help me find exact video
+                    timestamps!&quot;
                   </p>
                   <div className="flex items-center gap-3">
                     <AvatarEnhanced
@@ -472,7 +473,7 @@ const LandingPage = () => {
                     <span className="font-semibold text-orange-400">
                       Seedhi si baat hai
                     </span>{" "}
-                    - it's time to level up your coding skills!
+                    - it&apos;s time to level up your coding skills!
                   </p>
                 </div>
 

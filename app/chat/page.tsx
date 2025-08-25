@@ -16,7 +16,6 @@ import {
   Copy,
   Check,
   AlertCircle,
-  RefreshCw,
   Bot,
   User,
 } from "lucide-react";
@@ -25,7 +24,7 @@ import { AvatarEnhanced } from "@/components/ui/avatar-enhanced";
 import { CardEnhanced } from "@/components/ui/card-enhanced";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { utils, commonStyles } from "@/lib/design-system";
+import { utils } from "@/lib/design-system";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -458,7 +457,7 @@ const HomePage = () => {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
 
-      let assistantMessage: Message = {
+      const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: "",
@@ -773,7 +772,7 @@ const HomePage = () => {
                   Namaste! Welcome to ChaiCourseGPT
                 </h2>
                 <p className="text-base leading-relaxed text-gray-300 sm:text-lg">
-                  Haan ji! I'm your AI coding instructor, ready to help you
+                  Haan ji! I&apos;m your AI coding instructor, ready to help you
                   learn and grow.
                   <br className="hidden sm:block" />
                   <span className="font-medium text-orange-400">
@@ -823,7 +822,7 @@ const HomePage = () => {
                     Learn Faster
                   </h3>
                   <p className="text-xs text-gray-400 sm:text-sm">
-                    Get personalized explanations in Hitesh's teaching style
+                    Get personalized explanations in Hitesh&apos;s teaching style
                   </p>
                 </CardEnhanced>
 
@@ -846,7 +845,7 @@ const HomePage = () => {
               <div className="mt-8 rounded-xl border border-orange-500/20 bg-gradient-to-r from-orange-500/10 to-orange-600/10 p-4">
                 <p className="text-sm text-orange-200">
                   <span className="font-semibold">Pro Tip:</span> Try asking
-                  "How to setup venv in python?" or "what is fs module in nodejs?"
+                  &quot;How to setup venv in python?&quot; or &quot;what is fs module in nodejs?&quot;
                 </p>
               </div>
             </div>
@@ -965,7 +964,7 @@ const HomePage = () => {
               placeholder={
                 loading
                   ? "Processing..."
-                  : window.innerWidth < 640
+                  : typeof window !== "undefined" && window.innerWidth < 640
                     ? "Ask me anything..."
                     : "Ask me about the course content... (Haan ji, kuch bhi puch sakte hain!)"
               }

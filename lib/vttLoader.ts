@@ -9,7 +9,7 @@ interface VTTLoaderOptions {
   removeHtmlTags?: boolean;
   removePositionCues?: boolean;
   includeEmptySegments?: boolean;
-  customMetadata?: Record<string, any>;
+  customMetadata?: Record<string, unknown>;
   skipMalformedSegments?: boolean;
   maxSegments?: number;
   verbose?: boolean;
@@ -271,13 +271,14 @@ export class VTTLoader extends BaseDocumentLoader {
             break;
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         if (this.options.skipMalformedSegments) {
           skippedSegments++;
-          this.log(`Skipped malformed segment ${blockIndex}: ${error.message}`);
+          this.log(`Skipped malformed segment ${blockIndex}: ${errorMessage}`);
           continue;
         } else {
-          throw new Error(`Error parsing VTT block ${blockIndex}: ${error.message}`);
+          throw new Error(`Error parsing VTT block ${blockIndex}: ${errorMessage}`);
         }
       }
     }
@@ -351,8 +352,9 @@ export class VTTLoader extends BaseDocumentLoader {
         cueSettings: cueSettings.trim(),
         duration: endSeconds - startSeconds,
       };
-    } catch (error: any) {
-      throw new Error(`Timestamp parsing failed: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Timestamp parsing failed: ${errorMessage}`);
     }
   }
 
@@ -495,8 +497,8 @@ export class VTTLoader extends BaseDocumentLoader {
       if (stats.size > VTTLoader.LARGE_FILE_THRESHOLD) {
         this.log(`Processing large file: ${Math.round(stats.size / 1024 / 1024 * 100) / 100} MB`);
       }
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
+    } catch (error: unknown) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
         throw new Error(`File not found: ${filePath}`);
       }
       throw error;
@@ -538,7 +540,7 @@ export class VTTLoader extends BaseDocumentLoader {
 
       // Convert to LangChain Documents
       const documents = processedSegments.map((segment, index) => {
-        const metadata: Record<string, any> = {
+        const metadata: Record<string, unknown> = {
           // Core metadata
           source: pathMetadata.pathAfterCourse,
           fileName: pathMetadata.fileName,
@@ -601,9 +603,10 @@ export class VTTLoader extends BaseDocumentLoader {
 
       return documents;
 
-    } catch (error: any) {
-      this.log(`Error loading VTT file: ${error.message}`);
-      throw new Error(`Failed to load VTT file ${this.filePath}: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.log(`Error loading VTT file: ${errorMessage}`);
+      throw new Error(`Failed to load VTT file ${this.filePath}: ${errorMessage}`);
     }
   }
 
@@ -626,8 +629,9 @@ export class VTTLoader extends BaseDocumentLoader {
         const loader = new VTTLoader(filePath, options);
         const documents = await loader.load();
         allDocuments.push(...documents);
-      } catch (error: any) {
-        errors.push({ filePath, error: error.message });
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        errors.push({ filePath, error: errorMessage });
         if (!options.skipErrors) {
           throw error;
         }
@@ -666,8 +670,9 @@ export class VTTLoader extends BaseDocumentLoader {
             }
           }
         }
-      } catch (error: any) {
-        if (error.code !== 'ENOENT' && error.code !== 'EACCES') {
+      } catch (error: unknown) {
+        if (error instanceof Error && 'code' in error &&
+            error.code !== 'ENOENT' && error.code !== 'EACCES') {
           throw error;
         }
       }
