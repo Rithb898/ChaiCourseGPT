@@ -216,8 +216,10 @@ async function optimizedRetrievalWithParallelSearch(
   const isSimple = isSimpleQuery(userInput);
 
   // Step 1: Process queries in parallel
-  const { mainQuery, subQueries, hypotheticalDocument } =
-    await processQueriesInParallel(userInput, isSimple);
+  const { mainQuery, hypotheticalDocument } = await processQueriesInParallel(
+    userInput,
+    isSimple,
+  );
 
   console.log(`⏱️ Query processing took: ${Date.now() - startTime}ms`);
 

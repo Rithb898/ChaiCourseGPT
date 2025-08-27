@@ -160,4 +160,6 @@ const CourseFilter = memo(
   },
 );
 
+CourseFilter.displayName = "CourseFilter";
+
 export default CourseFilter;
