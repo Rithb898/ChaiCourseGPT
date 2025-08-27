@@ -5,7 +5,6 @@ import { generateText } from "ai";
 import { groq } from "@ai-sdk/groq";
 import {
   HYDE_SYSTEM_PROMPT,
-  QUERY_REWRITING_SYSTEM_PROMPT,
   RERANKING_SYSTEM_PROMPT,
   createMainSystemPrompt,
 } from "@/constants/prompts";
@@ -28,11 +27,6 @@ interface DocumentChunk {
   };
   pageContent: string;
   retrievalScore?: number;
-  retrievalSources?: Array<{
-    queryType: string;
-    query: string;
-    weight: number;
-  }>;
 }
 
 interface ConsolidatedSource {
@@ -45,293 +39,137 @@ interface ConsolidatedSource {
   relevanceScore: number;
 }
 
-// --- Simple Query Detection ---
+// Simplified query detection - removed complex analysis
 function isSimpleQuery(query: string): boolean {
   const words = query.trim().split(/\s+/);
-  const questionMarks = (query.match(/\?/g) || []).length;
+  return words.length <= 6 || /^(what is|how to|explain|define|show me|tell me)/i.test(query);
+}
 
-  // Simple patterns
-  const simplePatterns = [
-    /^what is /i,
-    /^how to /i,
-    /^explain /i,
-    /^define /i,
-    /^show me /i,
-    /^tell me /i,
-  ];
-
-  const isSimplePattern = simplePatterns.some((pattern) => pattern.test(query));
-  const isShort = words.length <= 8;
-  const isSingleQuestion = questionMarks <= 1;
-
-  const isSimple = (isShort && isSingleQuestion) || isSimplePattern;
-
-  console.log(
-    `🔍 Query analysis: "${query}" - Simple: ${isSimple} (${words.length} words, ${questionMarks} questions)`,
-  );
-
-  return isSimple;
+// Optimized source consolidation
+interface LessonData {
+  lessonNumber: string;
+  lessonTopic: string;
+  technology: string;
+  count: number;
+  startTime: string;
+  endTime: string;
 }
 
 function consolidateSources(chunks: DocumentChunk[]): ConsolidatedSource[] {
-  const lessonMap = new Map();
+  const lessonMap = new Map<string, LessonData>();
 
   chunks.forEach((doc) => {
-    const lessonNum = doc.metadata.lessonNumber || "?";
-    const lessonTopic = doc.metadata.lessonTopic || "Unknown Topic";
-    const technology = doc.metadata.technology || "Unknown";
-    const key = `${lessonNum}-${lessonTopic}`;
-
+    const key = `${doc.metadata.lessonNumber}-${doc.metadata.lessonTopic}`;
+    
     if (!lessonMap.has(key)) {
       lessonMap.set(key, {
-        lessonNumber: lessonNum,
-        lessonTopic: lessonTopic,
-        technology: technology,
-        chunks: [],
-        startTimes: new Set(),
-        endTimes: new Set(),
+        lessonNumber: doc.metadata.lessonNumber || "?",
+        lessonTopic: doc.metadata.lessonTopic || "Unknown Topic",
+        technology: doc.metadata.technology || "Unknown",
+        count: 0,
+        startTime: doc.metadata.startTime || "00:00:00",
+        endTime: doc.metadata.endTime || "00:00:00",
       });
     }
-
-    const lesson = lessonMap.get(key);
-    lesson.chunks.push(doc);
-    lesson.startTimes.add(doc.metadata.startTime || "00:00:00");
-    lesson.endTimes.add(doc.metadata.endTime || "00:00:00");
+    const lesson = lessonMap.get(key)!;
+    lesson.count++;
   });
 
-  return Array.from(lessonMap.values())
-    .filter((lesson) => lesson.chunks.length >= 1)
-    .sort((a, b) => b.chunks.length - a.chunks.length)
+  return Array.from(lessonMap.entries())
+    .sort(([, a], [, b]) => b.count - a.count)
     .slice(0, 3)
-    .map((lesson) => {
-      const startTimes = Array.from(lesson.startTimes).sort();
-      const endTimes = Array.from(lesson.endTimes).sort();
-
-      return {
-        id: `source-${lesson.lessonNumber}`,
-        technology: lesson.technology,
-        lessonNumber: lesson.lessonNumber,
-        lessonTopic: lesson.lessonTopic,
-        startTime: String(startTimes[0] || "00:00:00"),
-        endTime: String(endTimes[endTimes.length - 1] || "00:00:00"),
-        relevanceScore: lesson.chunks.length,
-      };
-    });
+    .map(([, lesson]) => ({
+      id: `source-${lesson.lessonNumber}`,
+      technology: lesson.technology,
+      lessonNumber: lesson.lessonNumber,
+      lessonTopic: lesson.lessonTopic,
+      startTime: lesson.startTime,
+      endTime: lesson.endTime,
+      relevanceScore: lesson.count,
+    }));
 }
 
-// --- Parallel HyDE Generation ---
-async function generateHypotheticalDocument(
-  userQuery: string,
-): Promise<string> {
+// Simplified HyDE generation
+async function generateHypotheticalDocument(userQuery: string): Promise<string> {
   const { text } = await generateText({
     model: groq("moonshotai/kimi-k2-instruct"),
     system: HYDE_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: `Student Question: ${userQuery}
-
-Generate a detailed course transcript segment that would answer this question:`,
-      },
-    ],
+    messages: [{ role: "user", content: `Student Question: ${userQuery}` }],
   });
-
   return text;
 }
 
-// --- Parallel Query Rewriting ---
-async function rewriteQuery(userInput: string) {
-  const { text } = await generateText({
-    model: "openai/gpt-5-nano",
-    system: QUERY_REWRITING_SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userInput }],
-  });
+// Removed query rewriting - not providing enough value for the complexity
+// Simple approach: just use original query + HyDE
 
-  let queryRewrite;
-  try {
-    queryRewrite = JSON.parse(text);
-  } catch {
-    queryRewrite = { mainQuery: userInput, subQueries: [] };
-  }
-
-  return queryRewrite;
-}
-
-// --- Parallel Query Processing ---
-async function processQueriesInParallel(userInput: string, isSimple: boolean) {
-  console.log(`⚡ Starting parallel processing - Simple query: ${isSimple}`);
-
-  if (isSimple) {
-    // For simple queries: Only run HyDE (faster)
-    console.log(`🚀 Simple query - Running HyDE only`);
-    const hydeDocument = await generateHypotheticalDocument(userInput);
-
-    return {
-      mainQuery: userInput,
-      subQueries: [],
-      hypotheticalDocument: hydeDocument,
-    };
-  } else {
-    // For complex queries: Run HyDE and query rewriting in parallel
-    console.log(
-      `🚀 Complex query - Running HyDE + Query rewriting in parallel`,
-    );
-    const [hydeDocument, queryRewrite] = await Promise.all([
-      generateHypotheticalDocument(userInput),
-      rewriteQuery(userInput),
-    ]);
-
-    return {
-      ...queryRewrite,
-      hypotheticalDocument: hydeDocument,
-    };
-  }
-}
-
-// --- Strong Course Filtering Function ---
-function filterDocumentsByCourse(
-  docs: DocumentChunk[],
-  courseFilter: CourseType,
-): DocumentChunk[] {
-  if (courseFilter === "all") return docs;
-
-  return docs.filter((doc) => {
-    const docTech = doc.metadata.technology?.toLowerCase();
-    const filterTech = courseFilter.toLowerCase();
-    return docTech === filterTech;
-  });
-}
-
-// --- Optimized Parallel Retrieval ---
-async function optimizedRetrievalWithParallelSearch(
+// Simplified retrieval with course filtering built-in
+async function optimizedRetrieval(
   userInput: string,
   vectorStore: QdrantVectorStore,
   courseFilter: CourseType = "all",
 ) {
   const startTime = Date.now();
-  console.log(
-    `🎯 Starting optimized retrieval with course filter: ${courseFilter}`,
-  );
-
   const isSimple = isSimpleQuery(userInput);
 
-  // Step 1: Process queries in parallel
-  const { mainQuery, hypotheticalDocument } = await processQueriesInParallel(
-    userInput,
-    isSimple,
-  );
+  // Always run original query + HyDE in parallel
+  const [originalDocs, hydeDocument] = await Promise.all([
+    vectorStore.similaritySearch(userInput, 12),
+    generateHypotheticalDocument(userInput),
+  ]);
 
-  console.log(`⏱️ Query processing took: ${Date.now() - startTime}ms`);
+  const hydeDocs = await vectorStore.similaritySearch(hydeDocument, 8);
 
-  // Step 2: Determine which queries to run (reduced count)
-  let queriesToRun: string[];
+  console.log(`⏱️ Retrieval took: ${Date.now() - startTime}ms`);
 
-  if (isSimple) {
-    // Simple queries: Original + HyDE only (2 searches)
-    queriesToRun = [userInput, hypotheticalDocument];
-    console.log(`📊 Simple query - Running 2 searches`);
-  } else {
-    // Complex queries: Original + Main rewrite + HyDE (3 searches, skip sub-queries)
-    queriesToRun = [userInput, mainQuery, hypotheticalDocument];
-    console.log(`📊 Complex query - Running 3 searches`);
-  }
+  // Filter by course early
+  const filterDocs = (docs: DocumentChunk[]) => 
+    courseFilter === "all" 
+      ? docs 
+      : docs.filter(doc => doc.metadata.technology?.toLowerCase() === courseFilter.toLowerCase());
 
-  // Step 3: Run all vector searches in parallel
-  const searchStartTime = Date.now();
-  const searchPromises = queriesToRun.map(async (query, index) => {
-    try {
-      const docs = await vectorStore.similaritySearch(query, 15); // Slightly reduced from 20
-      const filteredDocs = filterDocumentsByCourse(docs, courseFilter);
+  const filteredOriginal = filterDocs(originalDocs);
+  const filteredHyde = filterDocs(hydeDocs);
 
-      return {
-        query,
-        docs: filteredDocs,
-        queryType: index === queriesToRun.length - 1 ? "HyDE" : "Traditional",
-        index,
-      };
-    } catch (error) {
-      console.error(`Error in search ${index}:`, error);
-      return { query, docs: [], queryType: "Traditional", index };
+  // Simple scoring and deduplication
+  const docMap = new Map<string, DocumentChunk>();
+  
+  filteredOriginal.forEach(doc => {
+    const id = doc.metadata.segmentId || doc.pageContent.slice(0, 50);
+    docMap.set(id, { ...doc, retrievalScore: 1.2 }); // Original query boost
+  });
+
+  filteredHyde.forEach(doc => {
+    const id = doc.metadata.segmentId || doc.pageContent.slice(0, 50);
+    const existing = docMap.get(id);
+    if (existing) {
+      existing.retrievalScore = (existing.retrievalScore || 0) + 1.5;
+    } else {
+      docMap.set(id, { ...doc, retrievalScore: 1.5 }); // HyDE boost
     }
   });
 
-  const searchResults = await Promise.all(searchPromises);
-  console.log(`⏱️ Parallel searches took: ${Date.now() - searchStartTime}ms`);
-
-  // Step 4: Combine and score results
-  const allDocs: DocumentChunk[] = [];
-  const docScores = new Map();
-
-  searchResults.forEach(({ docs, queryType, index }) => {
-    docs.forEach((doc: DocumentChunk) => {
-      const docId = doc.metadata.segmentId;
-      if (!docScores.has(docId)) {
-        docScores.set(docId, {
-          doc,
-          sources: [],
-          totalScore: 0,
-        });
-      }
-
-      // Weight different retrieval methods
-      let weight = 1;
-      if (index === 0) weight = 1.2; // Original query gets slight boost
-      if (queryType === "HyDE") weight = 1.5; // HyDE gets higher weight
-
-      docScores.get(docId).sources.push({
-        queryType,
-        query: searchResults[index].query.substring(0, 100) + "...",
-        weight,
-      });
-      docScores.get(docId).totalScore += weight;
-    });
-
-    allDocs.push(...docs);
-  });
-
-  // Step 5: Deduplicate and sort
-  const uniqueDocs = Array.from(docScores.values())
-    .sort((a, b) => b.totalScore - a.totalScore)
-    .map((item) => ({
-      ...item.doc,
-      retrievalScore: item.totalScore,
-      retrievalSources: item.sources,
-    }));
-
-  console.log(`✅ Total retrieval took: ${Date.now() - startTime}ms`);
-  console.log(`📚 Retrieved ${uniqueDocs.length} unique docs after filtering`);
+  const allDocs = Array.from(docMap.values())
+    .sort((a, b) => (b.retrievalScore || 0) - (a.retrievalScore || 0));
 
   return {
-    queries: queriesToRun.slice(0, -1), // Don't include HyDE doc in query list
-    docs: uniqueDocs,
-    hydeDocument: hypotheticalDocument,
+    docs: allDocs,
+    hydeDocument,
     isSimpleQuery: isSimple,
   };
 }
 
-// --- Conditional Re-ranking (Skip for Simple Queries) ---
+// Simplified reranking - only for complex queries with many results
 async function conditionalReranking(
   userInput: string,
   docs: DocumentChunk[],
   hydeDocument: string,
   isSimple: boolean,
 ) {
-  if (docs.length === 0) return [];
-
-  // Skip re-ranking for simple queries - use retrieval scores directly
-  if (isSimple) {
-    console.log(
-      `⚡ Skipping re-ranking for simple query - using retrieval scores`,
-    );
-    return docs
-      .sort((a, b) => (b.retrievalScore || 0) - (a.retrievalScore || 0))
-      .slice(0, 8); // Take top 8
+  if (docs.length === 0 || isSimple || docs.length <= 8) {
+    return docs.slice(0, 8);
   }
 
-  // Full re-ranking for complex queries
-  console.log(`🔄 Running full re-ranking for complex query`);
-  const rerankStartTime = Date.now();
-
+  // Only rerank if we have too many docs (>8) and it's complex
   const { text } = await generateText({
     model: "openai/gpt-5-nano",
     system: RERANKING_SYSTEM_PROMPT,
@@ -340,67 +178,38 @@ async function conditionalReranking(
         role: "user",
         content: `User Query: ${userInput}
 
-Hypothetical Ideal Answer:
-${hydeDocument}
+Course Chunks:
+${docs.slice(0, 12).map((d, i) => `(${i}) ${d.pageContent.slice(0, 200)}...`).join("\n\n")}
 
-Course Transcript Chunks:
-${docs.map((d, i) => `(${i}) ${d.pageContent}`).join("\n\n")}
-
-Select the most relevant chunk indexes:`,
+Select 6-8 most relevant indexes:`,
       },
     ],
   });
 
-  let indexes: number[] = [];
   try {
-    indexes = JSON.parse(text);
+    const indexes: number[] = JSON.parse(text);
+    return indexes.map(i => docs[i]).filter(Boolean);
   } catch {
-    // Fallback: use retrieval scores
-    indexes = docs
-      .map((doc, i) => ({ index: i, score: doc.retrievalScore || 1 }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 8)
-      .map((item) => item.index);
+    return docs.slice(0, 8);
   }
-
-  console.log(`⏱️ Re-ranking took: ${Date.now() - rerankStartTime}ms`);
-  return indexes.map((i) => docs[i]).filter(Boolean);
 }
 
 export async function POST(req: Request) {
-  const totalStartTime = Date.now();
-
   try {
     const { messages, courseFilter = "all" } = await req.json();
     const lastMessage = messages[messages.length - 1].content;
 
-    console.log(`🎯 Course Filter: ${courseFilter}`);
-    console.log(`📝 User Query: ${lastMessage}`);
-
     // Initialize vector store
-    const vectorStore = await QdrantVectorStore.fromExistingCollection(
-      embeddings,
-      {
-        url: process.env.QDRANT_URL,
-        collectionName: "chaicode-course",
-      },
-    );
+    const vectorStore = await QdrantVectorStore.fromExistingCollection(embeddings, {
+      url: process.env.QDRANT_URL,
+      collectionName: "chaicode-course",
+    });
 
-    // Optimized retrieval with parallel processing
-    const {
-      queries,
-      docs: retrievedDocs,
-      hydeDocument,
-      isSimpleQuery,
-    } = await optimizedRetrievalWithParallelSearch(
-      lastMessage,
-      vectorStore,
-      courseFilter,
-    );
+    // Simplified retrieval
+    const { docs: retrievedDocs, hydeDocument, isSimpleQuery } = 
+      await optimizedRetrieval(lastMessage, vectorStore, courseFilter);
 
-    console.log(`📚 Retrieved ${retrievedDocs.length} docs after filtering`);
-
-    // Conditional re-ranking (skip for simple queries)
+    // Conditional re-ranking
     const relevantChunks = await conditionalReranking(
       lastMessage,
       retrievedDocs,
@@ -408,87 +217,44 @@ export async function POST(req: Request) {
       isSimpleQuery,
     );
 
-    console.log(`🎯 Final relevant chunks: ${relevantChunks.length}`);
+    if (relevantChunks.length === 0) {
+      const message = courseFilter === "all"
+        ? "Yaar, ye specific topic maine course mein cover nahi kiya hai."
+        : `Yaar, ye specific topic maine ${courseFilter} course mein cover nahi kiya hai.`;
 
-    // Final safety check
-    const safeChunks =
-      courseFilter === "all"
-        ? relevantChunks
-        : relevantChunks.filter(
-            (chunk) =>
-              chunk.metadata.technology?.toLowerCase() ===
-              courseFilter.toLowerCase(),
-          );
-
-    console.log(`✅ Safe chunks after final filter: ${safeChunks.length}`);
-    console.log(`⏱️ Total processing time: ${Date.now() - totalStartTime}ms`);
-
-    if (safeChunks.length === 0) {
-      const courseSpecificMessage =
-        courseFilter === "all"
-          ? "Yaar, ye specific topic maine course mein cover nahi kiya hai."
-          : `Yaar, ye specific topic maine ${courseFilter} course mein cover nahi kiya hai. Maybe try the other course or switch to "All Courses"?`;
-
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: "text", data: courseSpecificMessage })}\n\n`,
-            ),
-          );
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: "sources", data: [] })}\n\n`,
-            ),
-          );
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`),
-          );
-          controller.close();
-        },
-      });
-
-      return new Response(stream, {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-        },
-      });
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            const encoder = new TextEncoder();
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text", data: message })}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "sources", data: [] })}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
+            controller.close();
+          },
+        }),
+        {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        }
+      );
     }
 
-    // Consolidate sources
-    const consolidatedSources = consolidateSources(safeChunks);
-    console.log(`📋 Consolidated sources: ${consolidatedSources.length}`);
+    const consolidatedSources = consolidateSources(relevantChunks);
 
-    // Create streaming response
+    // Streaming response
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Prepare context
-          const context = safeChunks
-            .map((doc, i) => {
-              const lessonNum = doc.metadata.lessonNumber || "?";
-              const lessonTopic = doc.metadata.lessonTopic || "Unknown Topic";
-              const start = doc.metadata.startTime || "??:??:??";
-              const end = doc.metadata.endTime || "??:??:??";
-              const tech = doc.metadata.technology || "Unknown";
-
-              return `(${i + 1}) ${tech.toUpperCase()} - Lesson ${lessonNum} - ${lessonTopic} [${start} → ${end}]
-${doc.pageContent}`;
-            })
+          const context = relevantChunks
+            .map((doc, i) => `(${i + 1}) ${doc.metadata.technology?.toUpperCase() || "UNKNOWN"} - Lesson ${doc.metadata.lessonNumber} - ${doc.metadata.lessonTopic}
+${doc.pageContent}`)
             .join("\n\n");
 
-          const systemPrompt = createMainSystemPrompt(
-            lastMessage,
-            queries,
-            context,
-            courseFilter,
-          );
-
-          // Stream OpenAI response
+          const systemPrompt = createMainSystemPrompt(lastMessage, [lastMessage], context, courseFilter);
           const completion = await openai.chat.completions.create({
             model: "anthropic/claude-3.5-haiku",
             messages: [{ role: "system", content: systemPrompt }, ...messages],
@@ -499,33 +265,16 @@ ${doc.pageContent}`;
           for await (const chunk of completion) {
             const content = chunk.choices[0]?.delta?.content;
             if (content) {
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({ type: "text", data: content })}\n\n`,
-                ),
-              );
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text", data: content })}\n\n`));
             }
           }
 
-          // Send sources
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: "sources", data: consolidatedSources })}\n\n`,
-            ),
-          );
-
-          // Send completion
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`),
-          );
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "sources", data: consolidatedSources })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
           controller.close();
         } catch (error) {
           console.error("Stream error:", error);
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: "error", data: "Stream error occurred" })}\n\n`,
-            ),
-          );
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", data: "Stream error occurred" })}\n\n`));
           controller.close();
         }
       },
