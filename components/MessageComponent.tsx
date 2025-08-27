@@ -178,7 +178,9 @@ const MessageComponent = ({
                   : "message-bubble-assistant"
               }`}
             >
-              <div className="text-sm leading-relaxed">{messageContent}</div>
+              <div className="text-sm leading-relaxed font-semibold">
+                {messageContent}
+              </div>
 
               {message.content && (
                 <div className="absolute top-2 right-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100">
@@ -271,7 +273,6 @@ const MessageComponent = ({
               src="/user.svg"
               alt="User"
               size="md"
-              status="online"
               className="bg-gradient-to-br from-orange-500 to-orange-600"
               fallbackIcon={<User className="h-5 w-5 text-white" />}
             />

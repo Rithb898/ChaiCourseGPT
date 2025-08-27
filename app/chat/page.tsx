@@ -5,17 +5,11 @@ import {
   useState,
   useRef,
   useEffect,
-  JSX,
   useCallback,
   useMemo,
-  memo,
 } from "react";
-import { Send, Code2, Copy, Check, AlertCircle, Bot, User } from "lucide-react";
-import { SourceCard } from "@/components/SourceCard";
-import { AvatarEnhanced } from "@/components/ui/avatar-enhanced";
+import { Send, AlertCircle } from "lucide-react";
 import { CardEnhanced } from "@/components/ui/card-enhanced";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { utils } from "@/lib/design-system";
 import Image from "next/image";
 import Header from "@/components/Header";
@@ -758,7 +752,7 @@ const HomePage = () => {
             </div>
           </div>
         ) : (
-          <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6">
+          <div className="mx-auto max-w-5xl space-y-4 sm:space-y-6">
             {messages.map((message) => (
               <div key={message.id}>
                 <MessageComponent

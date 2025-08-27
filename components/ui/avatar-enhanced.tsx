@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import { utils, componentVariants } from "@/lib/design-system";
+import { utils } from "@/lib/design-system";
 
 interface AvatarProps {
   src?: string;
@@ -19,18 +19,10 @@ const sizeClasses = {
   xl: "h-16 w-16",
 };
 
-const statusSizeClasses = {
-  sm: "h-2 w-2",
-  md: "h-3 w-3",
-  lg: "h-4 w-4",
-  xl: "h-5 w-5",
-};
-
 export const AvatarEnhanced: React.FC<AvatarProps> = ({
   src,
   alt,
   size = "md",
-  status,
   fallbackIcon,
   className,
   onClick,
@@ -48,19 +40,14 @@ export const AvatarEnhanced: React.FC<AvatarProps> = ({
     className,
   );
 
-  const statusClasses = utils.cn(
-    "absolute -bottom-1 -right-1 rounded-full border-2 border-gray-900",
-    statusSizeClasses[size],
-    status && componentVariants.status[status],
-  );
-
   return (
     <div className={avatarClasses} onClick={onClick}>
       {src && !imageError ? (
         <Image
           src={src}
           alt={alt}
-          fill
+          height={35}
+          width={35}
           className="object-cover"
           onError={handleImageError}
         />
@@ -86,14 +73,6 @@ export const AvatarEnhanced: React.FC<AvatarProps> = ({
             </svg>
           )}
         </div>
-      )}
-
-      {status && (
-        <div
-          className={statusClasses}
-          aria-label={`Status: ${status}`}
-          title={`Status: ${status}`}
-        />
       )}
     </div>
   );
