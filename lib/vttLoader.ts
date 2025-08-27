@@ -45,7 +45,7 @@ interface PathMetadata {
 /**
  * Custom VTT (WebVTT) Document Loader for LangChain JS
  * Parses VTT subtitle files and creates documents with timestamp metadata
- * 
+ *
  * @example
  * const loader = new VTTLoader('./path/to/file.vtt', {
  *   combineSegments: true,
@@ -59,23 +59,24 @@ export class VTTLoader extends BaseDocumentLoader {
   static readonly DEFAULT_SEGMENTS_PER_CHUNK = 3;
   static readonly LARGE_FILE_THRESHOLD = 10 * 1024 * 1024; // 10MB
   static readonly MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-  static readonly SUPPORTED_EXTENSIONS = ['.vtt', '.webvtt'];
+  static readonly SUPPORTED_EXTENSIONS = [".vtt", ".webvtt"];
 
   private filePath: string;
   private options: Required<VTTLoaderOptions>;
 
   constructor(filePath: string, options: VTTLoaderOptions = {}) {
     super();
-    
+
     // Input validation
     this.validateFilePath(filePath);
     this.filePath = filePath;
-    
+
     this.options = {
       // Combine multiple subtitle segments into larger chunks
       combineSegments: options.combineSegments || false,
       // Number of segments to combine (if combineSegments is true)
-      segmentsPerChunk: options.segmentsPerChunk || VTTLoader.DEFAULT_SEGMENTS_PER_CHUNK,
+      segmentsPerChunk:
+        options.segmentsPerChunk || VTTLoader.DEFAULT_SEGMENTS_PER_CHUNK,
       // Remove HTML tags from subtitle text
       removeHtmlTags: options.removeHtmlTags !== false,
       // Remove positioning cues (like <c.colorE5E5E5>)
@@ -101,13 +102,15 @@ export class VTTLoader extends BaseDocumentLoader {
    * @throws {Error} If file path is invalid
    */
   private validateFilePath(filePath: string): void {
-    if (!filePath || typeof filePath !== 'string') {
-      throw new Error('filePath must be a non-empty string');
+    if (!filePath || typeof filePath !== "string") {
+      throw new Error("filePath must be a non-empty string");
     }
 
     const extension = path.extname(filePath).toLowerCase();
     if (!VTTLoader.SUPPORTED_EXTENSIONS.includes(extension)) {
-      throw new Error(`Unsupported file extension: ${extension}. Supported: ${VTTLoader.SUPPORTED_EXTENSIONS.join(', ')}`);
+      throw new Error(
+        `Unsupported file extension: ${extension}. Supported: ${VTTLoader.SUPPORTED_EXTENSIONS.join(", ")}`,
+      );
     }
   }
 
@@ -117,15 +120,15 @@ export class VTTLoader extends BaseDocumentLoader {
    */
   private validateOptions(): void {
     if (this.options.segmentsPerChunk < 1) {
-      throw new Error('segmentsPerChunk must be at least 1');
+      throw new Error("segmentsPerChunk must be at least 1");
     }
 
     if (this.options.maxSegments < 0) {
-      throw new Error('maxSegments must be non-negative (0 = unlimited)');
+      throw new Error("maxSegments must be non-negative (0 = unlimited)");
     }
 
-    if (typeof this.options.customMetadata !== 'object') {
-      throw new Error('customMetadata must be an object');
+    if (typeof this.options.customMetadata !== "object") {
+      throw new Error("customMetadata must be an object");
     }
   }
 
@@ -146,29 +149,36 @@ export class VTTLoader extends BaseDocumentLoader {
    * @throws {Error} If timestamp format is invalid
    */
   private parseTimestamp(timestamp: string): number {
-    if (!timestamp || typeof timestamp !== 'string') {
+    if (!timestamp || typeof timestamp !== "string") {
       throw new Error(`Invalid timestamp: ${timestamp}`);
     }
 
     // More robust timestamp regex that handles optional milliseconds
     const timestampRegex = /^(\d{1,2}):(\d{2}):(\d{2})(?:[.,](\d{1,3}))?$/;
-    const match = timestamp.replace(',', '.').match(timestampRegex);
+    const match = timestamp.replace(",", ".").match(timestampRegex);
 
     if (!match) {
-      throw new Error(`Invalid timestamp format: ${timestamp}. Expected format: HH:MM:SS.mmm or HH:MM:SS,mmm`);
+      throw new Error(
+        `Invalid timestamp format: ${timestamp}. Expected format: HH:MM:SS.mmm or HH:MM:SS,mmm`,
+      );
     }
 
-    const [, hours, minutes, seconds, milliseconds = '0'] = match;
-    
+    const [, hours, minutes, seconds, milliseconds = "0"] = match;
+
     // Validate ranges
     if (parseInt(minutes) >= 60 || parseInt(seconds) >= 60) {
       throw new Error(`Invalid timestamp values: ${timestamp}`);
     }
 
     // Pad milliseconds to 3 digits
-    const ms = milliseconds.padEnd(3, '0').substring(0, 3);
-    
-    return parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseInt(seconds) + parseInt(ms) / 1000;
+    const ms = milliseconds.padEnd(3, "0").substring(0, 3);
+
+    return (
+      parseInt(hours) * 3600 +
+      parseInt(minutes) * 60 +
+      parseInt(seconds) +
+      parseInt(ms) / 1000
+    );
   }
 
   /**
@@ -177,18 +187,18 @@ export class VTTLoader extends BaseDocumentLoader {
    * @returns Formatted timestamp (HH:MM:SS.mmm)
    */
   private formatTimestamp(seconds: number): string {
-    if (typeof seconds !== 'number' || seconds < 0) {
+    if (typeof seconds !== "number" || seconds < 0) {
       throw new Error(`Invalid seconds value: ${seconds}`);
     }
 
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = seconds % 60;
-    
+
     const wholeSeconds = Math.floor(remainingSeconds);
     const milliseconds = Math.round((remainingSeconds - wholeSeconds) * 1000);
 
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${wholeSeconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${wholeSeconds.toString().padStart(2, "0")}.${milliseconds.toString().padStart(3, "0")}`;
   }
 
   /**
@@ -197,36 +207,36 @@ export class VTTLoader extends BaseDocumentLoader {
    * @returns Cleaned text
    */
   private cleanText(text: string): string {
-    if (!text || typeof text !== 'string') {
-      return '';
+    if (!text || typeof text !== "string") {
+      return "";
     }
 
     let cleaned = text;
 
     if (this.options.removeHtmlTags) {
       // More comprehensive HTML tag removal
-      cleaned = cleaned.replace(/<\/?[^>]+(>|$)/g, '');
+      cleaned = cleaned.replace(/<\/?[^>]+(>|$)/g, "");
     }
 
     if (this.options.removePositionCues) {
       // Remove WebVTT positioning and styling cues
       cleaned = cleaned
         // Remove voice/class cues like <v Speaker> or <c.className>
-        .replace(/<[vc](?:\.[^>]*)?>.*?<\/[vc]>/gi, '')
-        .replace(/<[vc][^>]*>/gi, '')
+        .replace(/<[vc](?:\.[^>]*)?>.*?<\/[vc]>/gi, "")
+        .replace(/<[vc][^>]*>/gi, "")
         // Remove timestamp cues like <00:01:23.456>
-        .replace(/<\d{2}:\d{2}:\d{2}\.\d{3}>/g, '')
+        .replace(/<\d{2}:\d{2}:\d{2}\.\d{3}>/g, "")
         // Remove other WebVTT cues
-        .replace(/<[^>]*>/g, '');
+        .replace(/<[^>]*>/g, "");
     }
 
     // Handle multiple whitespace types and normalize
     cleaned = cleaned
-      .replace(/[\s\n\r\t]+/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
+      .replace(/[\s\n\r\t]+/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"')
       .trim();
 
@@ -239,24 +249,27 @@ export class VTTLoader extends BaseDocumentLoader {
    * @returns Array of subtitle segments
    */
   private parseVTT(content: string): VTTSegment[] {
-    if (!content || typeof content !== 'string') {
-      throw new Error('VTT content must be a non-empty string');
+    if (!content || typeof content !== "string") {
+      throw new Error("VTT content must be a non-empty string");
     }
 
     const subtitleSegments: VTTSegment[] = [];
     let skippedSegments = 0;
-    
+
     // Remove BOM if present and normalize line endings
-    const cleanContent = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    
+    const cleanContent = content
+      .replace(/^\uFEFF/, "")
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n");
+
     // Split by double newlines to get blocks
     const vttBlocks = cleanContent.split(/\n\s*\n/);
 
     for (let blockIndex = 0; blockIndex < vttBlocks.length; blockIndex++) {
       const block = vttBlocks[blockIndex].trim();
-      
+
       // Skip WEBVTT header, NOTE blocks, and empty blocks
-      if (block.startsWith('WEBVTT') || block.startsWith('NOTE') || !block) {
+      if (block.startsWith("WEBVTT") || block.startsWith("NOTE") || !block) {
         continue;
       }
 
@@ -264,26 +277,36 @@ export class VTTLoader extends BaseDocumentLoader {
         const segment = this.parseVTTBlock(block, blockIndex);
         if (segment) {
           subtitleSegments.push(segment);
-          
+
           // Check maxSegments limit
-          if (this.options.maxSegments > 0 && subtitleSegments.length >= this.options.maxSegments) {
-            this.log(`Reached maximum segments limit: ${this.options.maxSegments}`);
+          if (
+            this.options.maxSegments > 0 &&
+            subtitleSegments.length >= this.options.maxSegments
+          ) {
+            this.log(
+              `Reached maximum segments limit: ${this.options.maxSegments}`,
+            );
             break;
           }
         }
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         if (this.options.skipMalformedSegments) {
           skippedSegments++;
           this.log(`Skipped malformed segment ${blockIndex}: ${errorMessage}`);
           continue;
         } else {
-          throw new Error(`Error parsing VTT block ${blockIndex}: ${errorMessage}`);
+          throw new Error(
+            `Error parsing VTT block ${blockIndex}: ${errorMessage}`,
+          );
         }
       }
     }
 
-    this.log(`Parsed ${subtitleSegments.length} segments, skipped ${skippedSegments} malformed segments`);
+    this.log(
+      `Parsed ${subtitleSegments.length} segments, skipped ${skippedSegments} malformed segments`,
+    );
     return subtitleSegments;
   }
 
@@ -294,13 +317,13 @@ export class VTTLoader extends BaseDocumentLoader {
    * @returns Parsed segment or null if invalid
    */
   private parseVTTBlock(block: string, blockIndex: number): VTTSegment | null {
-    const lines = block.split('\n');
+    const lines = block.split("\n");
     let timelineIndex = -1;
-    let cueId = '';
+    let cueId = "";
 
     // Find the timeline (contains -->)
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes(' --> ')) {
+      if (lines[i].includes(" --> ")) {
         timelineIndex = i;
         if (i > 0) {
           cueId = lines[0].trim(); // First line is cue ID
@@ -314,17 +337,19 @@ export class VTTLoader extends BaseDocumentLoader {
     }
 
     const timelineParts = lines[timelineIndex].trim();
-    
+
     // Enhanced timestamp regex that handles WebVTT settings
-    const timeMatch = timelineParts.match(/^(\d{1,2}:\d{2}:\d{2}(?:[.,]\d{1,3})?)\s*-->\s*(\d{1,2}:\d{2}:\d{2}(?:[.,]\d{1,3})?)(?:\s+(.*))?$/);
-    
+    const timeMatch = timelineParts.match(
+      /^(\d{1,2}:\d{2}:\d{2}(?:[.,]\d{1,3})?)\s*-->\s*(\d{1,2}:\d{2}:\d{2}(?:[.,]\d{1,3})?)(?:\s+(.*))?$/,
+    );
+
     if (!timeMatch) {
       throw new Error(`Invalid timeline format: ${timelineParts}`);
     }
 
-    const [, startTime, endTime, cueSettings = ''] = timeMatch;
+    const [, startTime, endTime, cueSettings = ""] = timeMatch;
     const textLines = lines.slice(timelineIndex + 1);
-    const rawText = textLines.join('\n').trim();
+    const rawText = textLines.join("\n").trim();
     const cleanedText = this.cleanText(rawText);
 
     // Skip empty segments unless specified otherwise
@@ -338,7 +363,9 @@ export class VTTLoader extends BaseDocumentLoader {
 
       // Validate timeline logic
       if (endSeconds <= startSeconds) {
-        throw new Error(`End time must be after start time: ${startTime} --> ${endTime}`);
+        throw new Error(
+          `End time must be after start time: ${startTime} --> ${endTime}`,
+        );
       }
 
       return {
@@ -353,7 +380,8 @@ export class VTTLoader extends BaseDocumentLoader {
         duration: endSeconds - startSeconds,
       };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new Error(`Timestamp parsing failed: ${errorMessage}`);
     }
   }
@@ -378,9 +406,9 @@ export class VTTLoader extends BaseDocumentLoader {
 
       // Combine text with proper spacing
       const combinedText = segmentChunk
-        .map(segment => segment.text)
-        .filter(text => text.trim())
-        .join(' ')
+        .map((segment) => segment.text)
+        .filter((text) => text.trim())
+        .join(" ")
         .trim();
 
       if (!combinedText && !this.options.includeEmptySegments) {
@@ -394,15 +422,17 @@ export class VTTLoader extends BaseDocumentLoader {
         startSeconds: firstSegment.startSeconds,
         endSeconds: lastSegment.endSeconds,
         text: combinedText,
-        originalText: segmentChunk.map(s => s.originalText).join('\n'),
+        originalText: segmentChunk.map((s) => s.originalText).join("\n"),
         duration: lastSegment.endSeconds - firstSegment.startSeconds,
         segmentCount: segmentChunk.length,
-        segmentIds: segmentChunk.map(s => s.id),
+        segmentIds: segmentChunk.map((s) => s.id),
         originalSegments: segmentChunk,
       });
     }
 
-    this.log(`Combined ${segments.length} segments into ${combinedSegments.length} chunks`);
+    this.log(
+      `Combined ${segments.length} segments into ${combinedSegments.length} chunks`,
+    );
     return combinedSegments;
   }
 
@@ -413,33 +443,37 @@ export class VTTLoader extends BaseDocumentLoader {
    */
   private extractPathMetadata(filePath: string): PathMetadata {
     const normalizedPath = path.normalize(filePath);
-    const pathParts = normalizedPath.split(path.sep).filter(part => part && part !== '.');
+    const pathParts = normalizedPath
+      .split(path.sep)
+      .filter((part) => part && part !== ".");
     const fileName = pathParts[pathParts.length - 1];
     const fileNameWithoutExt = path.basename(fileName, path.extname(fileName));
-    
+
     // Find various course-related directory markers
-    const courseMarkers = ['genai-cohort', 'course', 'lessons', 'videos'];
+    const courseMarkers = ["genai-cohort", "course", "lessons", "videos"];
     let courseIndex = -1;
-    let courseMarker = '';
-    
+    let courseMarker = "";
+
     for (const marker of courseMarkers) {
-      const index = pathParts.findIndex(part => part.toLowerCase().includes(marker.toLowerCase()));
+      const index = pathParts.findIndex((part) =>
+        part.toLowerCase().includes(marker.toLowerCase()),
+      );
       if (index !== -1) {
         courseIndex = index;
         courseMarker = marker;
         break;
       }
     }
-    
-    let pathAfterCourse = '';
-    let technology = '';
+
+    let pathAfterCourse = "";
+    let technology = "";
     let lessonInfo: Partial<PathMetadata> = {};
     let courseInfo: Partial<PathMetadata> = {};
-    
+
     if (courseIndex !== -1 && courseIndex < pathParts.length - 1) {
       const relevantParts = pathParts.slice(courseIndex + 1);
-      pathAfterCourse = relevantParts.join('/');
-      
+      pathAfterCourse = relevantParts.join("/");
+
       // Extract technology (usually first directory after course marker)
       if (relevantParts.length > 0) {
         technology = relevantParts[0];
@@ -448,16 +482,16 @@ export class VTTLoader extends BaseDocumentLoader {
       // Extract course information
       courseInfo = {
         courseMarker,
-        coursePath: pathParts.slice(0, courseIndex + 1).join('/'),
+        coursePath: pathParts.slice(0, courseIndex + 1).join("/"),
         relativePath: pathAfterCourse,
       };
     }
-    
+
     // Enhanced lesson information extraction
     const lessonPatterns = [
-      /^(\d+)[-_\s]+(.+)/,           // "01-introduction" or "01_introduction" or "01 introduction"
-      /^lesson[-_\s]*(\d+)[-_\s]*(.+)/i,  // "lesson-01-introduction"
-      /^(\d+)\.(.+)/,                // "01.introduction"
+      /^(\d+)[-_\s]+(.+)/, // "01-introduction" or "01_introduction" or "01 introduction"
+      /^lesson[-_\s]*(\d+)[-_\s]*(.+)/i, // "lesson-01-introduction"
+      /^(\d+)\.(.+)/, // "01.introduction"
       /^chapter[-_\s]*(\d+)[-_\s]*(.+)/i, // "chapter-01-introduction"
     ];
 
@@ -465,13 +499,13 @@ export class VTTLoader extends BaseDocumentLoader {
       const match = fileNameWithoutExt.match(pattern);
       if (match) {
         lessonInfo = {
-          lessonNumber: match[1].padStart(2, '0'),
-          lessonTopic: match[2].replace(/[-_]/g, ' ').trim(),
+          lessonNumber: match[1].padStart(2, "0"),
+          lessonTopic: match[2].replace(/[-_]/g, " ").trim(),
         };
         break;
       }
     }
-    
+
     return {
       fileName,
       fileNameWithoutExt,
@@ -489,16 +523,24 @@ export class VTTLoader extends BaseDocumentLoader {
   private async checkFileSize(filePath: string): Promise<void> {
     try {
       const stats = await fs.stat(filePath);
-      
+
       if (stats.size > VTTLoader.MAX_FILE_SIZE) {
-        throw new Error(`File too large: ${stats.size} bytes. Maximum size: ${VTTLoader.MAX_FILE_SIZE} bytes`);
+        throw new Error(
+          `File too large: ${stats.size} bytes. Maximum size: ${VTTLoader.MAX_FILE_SIZE} bytes`,
+        );
       }
-      
+
       if (stats.size > VTTLoader.LARGE_FILE_THRESHOLD) {
-        this.log(`Processing large file: ${Math.round(stats.size / 1024 / 1024 * 100) / 100} MB`);
+        this.log(
+          `Processing large file: ${Math.round((stats.size / 1024 / 1024) * 100) / 100} MB`,
+        );
       }
     } catch (error: unknown) {
-      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ENOENT"
+      ) {
         throw new Error(`File not found: ${filePath}`);
       }
       throw error;
@@ -518,17 +560,17 @@ export class VTTLoader extends BaseDocumentLoader {
       await this.checkFileSize(this.filePath);
 
       // Read VTT file with encoding detection
-      const content = await fs.readFile(this.filePath, 'utf-8');
-      
+      const content = await fs.readFile(this.filePath, "utf-8");
+
       if (!content.trim()) {
-        throw new Error('VTT file is empty');
+        throw new Error("VTT file is empty");
       }
 
       // Parse VTT content
       const segments = this.parseVTT(content);
-      
+
       if (segments.length === 0) {
-        this.log('No valid segments found in VTT file');
+        this.log("No valid segments found in VTT file");
         return [];
       }
 
@@ -545,7 +587,7 @@ export class VTTLoader extends BaseDocumentLoader {
           source: pathMetadata.pathAfterCourse,
           fileName: pathMetadata.fileName,
           technology: pathMetadata.technology,
-          
+
           // Segment metadata
           segmentId: segment.id,
           startTime: segment.startTime,
@@ -554,7 +596,7 @@ export class VTTLoader extends BaseDocumentLoader {
           endSeconds: segment.endSeconds,
           duration: segment.duration,
           index: index,
-          
+
           // Processing metadata
           loadedAt: new Date().toISOString(),
           processingOptions: {
@@ -563,7 +605,7 @@ export class VTTLoader extends BaseDocumentLoader {
             removeHtmlTags: this.options.removeHtmlTags,
             removePositionCues: this.options.removePositionCues,
           },
-          
+
           // Custom metadata
           ...this.options.customMetadata,
         };
@@ -599,14 +641,18 @@ export class VTTLoader extends BaseDocumentLoader {
       });
 
       const processingTime = Date.now() - startTime;
-      this.log(`Successfully loaded ${documents.length} documents in ${processingTime}ms`);
+      this.log(
+        `Successfully loaded ${documents.length} documents in ${processingTime}ms`,
+      );
 
       return documents;
-
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.log(`Error loading VTT file: ${errorMessage}`);
-      throw new Error(`Failed to load VTT file ${this.filePath}: ${errorMessage}`);
+      throw new Error(
+        `Failed to load VTT file ${this.filePath}: ${errorMessage}`,
+      );
     }
   }
 
@@ -616,9 +662,12 @@ export class VTTLoader extends BaseDocumentLoader {
    * @param options - Common options for all files
    * @returns Combined array of documents
    */
-  static async loadMultiple(filePaths: string[], options: VTTLoaderOptions & { skipErrors?: boolean } = {}): Promise<Document[]> {
+  static async loadMultiple(
+    filePaths: string[],
+    options: VTTLoaderOptions & { skipErrors?: boolean } = {},
+  ): Promise<Document[]> {
     if (!Array.isArray(filePaths) || filePaths.length === 0) {
-      throw new Error('filePaths must be a non-empty array');
+      throw new Error("filePaths must be a non-empty array");
     }
 
     const allDocuments: Document[] = [];
@@ -630,7 +679,8 @@ export class VTTLoader extends BaseDocumentLoader {
         const documents = await loader.load();
         allDocuments.push(...documents);
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         errors.push({ filePath, error: errorMessage });
         if (!options.skipErrors) {
           throw error;
@@ -639,7 +689,10 @@ export class VTTLoader extends BaseDocumentLoader {
     }
 
     if (errors.length > 0 && options.verbose) {
-      console.log(`Encountered ${errors.length} errors while loading files:`, errors);
+      console.log(
+        `Encountered ${errors.length} errors while loading files:`,
+        errors,
+      );
     }
 
     return allDocuments;
@@ -651,7 +704,10 @@ export class VTTLoader extends BaseDocumentLoader {
    * @param recursive - Whether to search recursively
    * @returns Array of VTT file paths
    */
-  static async discoverFiles(directoryPath: string, recursive: boolean = true): Promise<string[]> {
+  static async discoverFiles(
+    directoryPath: string,
+    recursive: boolean = true,
+  ): Promise<string[]> {
     const vttFiles: string[] = [];
 
     async function scanDirectory(dir: string): Promise<void> {
@@ -671,8 +727,12 @@ export class VTTLoader extends BaseDocumentLoader {
           }
         }
       } catch (error: unknown) {
-        if (error instanceof Error && 'code' in error &&
-            error.code !== 'ENOENT' && error.code !== 'EACCES') {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code !== "ENOENT" &&
+          error.code !== "EACCES"
+        ) {
           throw error;
         }
       }

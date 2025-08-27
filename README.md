@@ -1,19 +1,20 @@
 <div align="center">
   <img src="public/chai.webp" alt="ChaiCourseGPT Logo" width="120" height="120" style="border-radius: 20px;">
 
-  # ChaiCourseGPT
+# ChaiCourseGPT
 
-  **Your AI Coding Instructor Powered by Hitesh Choudhary's Teaching Style**
+**Your AI Coding Instructor Powered by Hitesh Choudhary's Teaching Style**
 
-  [![Next.js](https://img.shields.io/badge/Next.js-15.5.0-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
-  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
-  [![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4-412991?style=for-the-badge&logo=openai)](https://openai.com/)
-  [![Qdrant](https://img.shields.io/badge/Qdrant-Vector_DB-DC382D?style=for-the-badge)](https://qdrant.tech/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5.0-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4-412991?style=for-the-badge&logo=openai)](https://openai.com/)
+[![Qdrant](https://img.shields.io/badge/Qdrant-Vector_DB-DC382D?style=for-the-badge)](https://qdrant.tech/)
 
-  🔗 **[GitHub Repository](https://github.com/Rithb898/ChaiCourseGPT)** | 🚀 **[Live Demo](https://chaicoursegpt.vercel.app)**
+🔗 **[GitHub Repository](https://github.com/Rithb898/ChaiCourseGPT)** | 🚀 **[Live Demo](https://chaicoursegpt.vercel.app)**
 
-  *Namaste! Seedhi si baat hai - Learn coding faster with your AI assistant that speaks your language.*
+_Namaste! Seedhi si baat hai - Learn coding faster with your AI assistant that speaks your language._
+
 </div>
 
 ---
@@ -53,18 +54,21 @@ ChaiCourseGPT is an intelligent AI coding assistant that brings **Hitesh Choudha
 ## ✨ Key Features
 
 ### 🤖 Intelligent AI Assistance
+
 - **Context-Aware Responses**: Understands your coding questions and provides relevant explanations
 - **Code Debugging Help**: Instant assistance with debugging and error resolution
 - **Best Practices**: Learn industry-standard coding practices and patterns
 - **Multi-Language Support**: Help with JavaScript, React, Node.js, Python, and more
 
 ### 🎯 Advanced Retrieval System
+
 - **Vector Database Integration**: Powered by Qdrant for semantic search
 - **HyDE Technology**: Hypothetical Document Embeddings for improved search accuracy
 - **Smart Re-ranking**: AI-powered relevance scoring for better results
 - **Source Attribution**: Every answer comes with precise course references
 
 ### 🎨 User Experience
+
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
 - **Real-time Chat**: Smooth, interactive conversation interface
 - **Syntax Highlighting**: Beautiful code display with multiple language support
@@ -72,6 +76,7 @@ ChaiCourseGPT is an intelligent AI coding assistant that brings **Hitesh Choudha
 - **Copy-to-Clipboard**: Easy code sharing and copying functionality
 
 ### 🔧 Developer Features
+
 - **TypeScript**: Full type safety and better development experience
 - **Modern React**: Built with React 19 and Next.js 15
 - **Component Library**: Radix UI components for accessibility
@@ -83,6 +88,7 @@ ChaiCourseGPT is an intelligent AI coding assistant that brings **Hitesh Choudha
 ## 🛠 Technology Stack
 
 ### Frontend
+
 - **[Next.js 15.5.0](https://nextjs.org/)** - React framework with App Router
 - **[React 19.1.0](https://react.dev/)** - UI library with latest features
 - **[TypeScript 5.0](https://www.typescriptlang.org/)** - Type-safe JavaScript
@@ -91,6 +97,7 @@ ChaiCourseGPT is an intelligent AI coding assistant that brings **Hitesh Choudha
 - **[Lucide React](https://lucide.dev/)** - Beautiful icon library
 
 ### AI & Backend
+
 - **[OpenAI GPT-4](https://openai.com/)** - Primary language model
 - **[Groq](https://groq.com/)** - Fast inference for specific tasks
 - **[LangChain](https://langchain.com/)** - AI application framework
@@ -98,6 +105,7 @@ ChaiCourseGPT is an intelligent AI coding assistant that brings **Hitesh Choudha
 - **[Vercel AI SDK](https://sdk.vercel.ai/)** - AI integration toolkit
 
 ### Development Tools
+
 - **[ESLint](https://eslint.org/)** - Code linting and formatting
 - **[Prettier](https://prettier.io/)** - Code formatting
 - **[pnpm](https://pnpm.io/)** - Fast, disk space efficient package manager
@@ -109,6 +117,7 @@ ChaiCourseGPT is an intelligent AI coding assistant that brings **Hitesh Choudha
 ### Prerequisites
 
 Before you begin, ensure you have the following installed:
+
 - **Node.js** (version 18.0 or higher)
 - **pnpm** (recommended) or npm/yarn
 - **Git** for version control
@@ -116,12 +125,14 @@ Before you begin, ensure you have the following installed:
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/Rithb898/ChaiCourseGPT.git
    cd ChaiCourseGPT
    ```
 
 2. **Install dependencies**
+
    ```bash
    pnpm install
    # or
@@ -133,6 +144,7 @@ Before you begin, ensure you have the following installed:
 3. **Set up environment variables** (see [Environment Setup](#-environment-setup))
 
 4. **Run the development server**
+
    ```bash
    pnpm dev
    # or
@@ -223,6 +235,7 @@ The application expects a Qdrant collection named `chaicode-course` with course 
 Processes user messages and returns AI-generated responses with source references.
 
 #### Request Body
+
 ```json
 {
   "messages": [
@@ -235,6 +248,7 @@ Processes user messages and returns AI-generated responses with source reference
 ```
 
 #### Response Format
+
 ```json
 {
   "message": "Haan ji! Let me explain how to create a React component...",
@@ -253,6 +267,7 @@ Processes user messages and returns AI-generated responses with source reference
 ```
 
 #### Key Features
+
 - **HyDE Integration**: Uses Hypothetical Document Embeddings for better retrieval
 - **Smart Re-ranking**: AI-powered relevance scoring
 - **Source Consolidation**: Groups related content by lesson
@@ -324,11 +339,13 @@ We welcome contributions from the community! Here's how you can help:
 ### Development Workflow
 
 1. **Fork the repository**
+
    ```bash
    git fork https://github.com/Rithb898/ChaiCourseGPT.git
    ```
 
 2. **Create a feature branch**
+
    ```bash
    git checkout -b feature/amazing-feature
    ```
@@ -340,6 +357,7 @@ We welcome contributions from the community! Here's how you can help:
    - Update documentation
 
 4. **Test your changes**
+
    ```bash
    pnpm dev          # Test locally
    pnpm build        # Test production build
@@ -347,11 +365,13 @@ We welcome contributions from the community! Here's how you can help:
    ```
 
 5. **Commit your changes**
+
    ```bash
    git commit -m "feat: add amazing feature"
    ```
 
 6. **Push to your fork**
+
    ```bash
    git push origin feature/amazing-feature
    ```
@@ -394,6 +414,7 @@ The easiest way to deploy ChaiCourseGPT is using [Vercel](https://vercel.com/):
 ### Manual Deployment
 
 1. **Build the application**
+
    ```bash
    pnpm build
    ```
@@ -475,6 +496,7 @@ SOFTWARE.
 ## 📞 Contact
 
 ### Author
+
 **Rith Banerjee** - Full Stack Developer & AI Enthusiast
 
 - 🐙 **GitHub**: [@Rithb898](https://github.com/Rithb898)
@@ -494,14 +516,14 @@ SOFTWARE.
 
 <div align="center">
 
-  ### 🙏 Thank You for Using ChaiCourseGPT!
+### 🙏 Thank You for Using ChaiCourseGPT!
 
-  *Seedhi si baat hai - Happy coding! 🚀*
+_Seedhi si baat hai - Happy coding! 🚀_
 
-  **If this project helped you, please consider giving it a ⭐ on GitHub!**
+**If this project helped you, please consider giving it a ⭐ on GitHub!**
 
-  ---
+---
 
-  Made with ❤️ by [Rith Banerjee](https://github.com/Rithb898) | Powered by Hitesh Choudhary's Teaching Philosophy
+Made with ❤️ by [Rith Banerjee](https://github.com/Rithb898) | Powered by Hitesh Choudhary's Teaching Philosophy
 
 </div>

@@ -10,8 +10,12 @@
   --font-mono: var(--font-jetbrains-mono);
 
   /* Font Family Definitions */
-  --font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-family-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-family-sans:
+    var(--font-inter), ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-family-mono:
+    var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+    Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   /* Enhanced Design System Colors */
   --color-chai-orange-50: #fff7ed;
@@ -72,8 +76,10 @@
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl:
+    0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 
   /* Original shadcn/ui colors */
   --color-sidebar-ring: var(--sidebar-ring);
@@ -183,27 +189,48 @@
 
   body {
     @apply bg-background text-foreground font-sans;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   /* Enhanced Typography with Inter Font */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-sans font-semibold tracking-tight;
     line-height: var(--line-height-tight);
   }
 
-  h1 { @apply text-3xl; }
-  h2 { @apply text-2xl; }
-  h3 { @apply text-xl; }
-  h4 { @apply text-lg; }
-  h5 { @apply text-base; }
-  h6 { @apply text-sm; }
+  h1 {
+    @apply text-3xl;
+  }
+  h2 {
+    @apply text-2xl;
+  }
+  h3 {
+    @apply text-xl;
+  }
+  h4 {
+    @apply text-lg;
+  }
+  h5 {
+    @apply text-base;
+  }
+  h6 {
+    @apply text-sm;
+  }
 
   /* Code elements use JetBrains Mono */
-  code, pre, .font-mono {
+  code,
+  pre,
+  .font-mono {
     @apply font-mono;
   }
 
@@ -213,7 +240,7 @@
 
   /* Enhanced Focus States */
   *:focus-visible {
-    @apply outline-none ring-2 ring-offset-2 ring-offset-background;
+    @apply ring-offset-background ring-2 ring-offset-2 outline-none;
     ring-color: var(--color-chai-orange-500);
   }
 
@@ -254,7 +281,7 @@
   }
 
   .message-bubble-assistant {
-    @apply border border-gray-700 text-gray-100 rounded-2xl px-4 py-3 shadow-md transition-all duration-200;
+    @apply rounded-2xl border border-gray-700 px-4 py-3 text-gray-100 shadow-md transition-all duration-200;
     background: linear-gradient(135deg, #1a1a1a 0%, #1f1f1f 100%);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
@@ -265,7 +292,7 @@
   }
 
   .loading-dot {
-    @apply h-2 w-2 rounded-full bg-orange-500 animate-bounce;
+    @apply h-2 w-2 animate-bounce rounded-full bg-orange-500;
   }
 
   .loading-dot:nth-child(2) {
@@ -283,28 +310,30 @@
   }
 
   .source-card:hover {
-    @apply border-orange-500/50 transform scale-[1.01];
+    @apply scale-[1.01] transform border-orange-500/50;
     box-shadow: 0 4px 15px rgba(249, 115, 22, 0.1);
   }
 
   /* Enhanced Input Styles */
   .chat-input {
     @apply max-h-32 min-h-[52px] resize-none rounded-xl border-gray-600 text-white placeholder-gray-400;
-    @apply focus:border-orange-500 focus:ring-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply focus:border-orange-500 focus:ring-orange-500/20 disabled:cursor-not-allowed disabled:opacity-50;
     @apply transition-all duration-200;
     background: linear-gradient(135deg, #2a2a2a 0%, #2f2f2f 100%);
   }
 
   .chat-input:focus {
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1), 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow:
+      0 0 0 3px rgba(249, 115, 22, 0.1),
+      0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   /* Enhanced Button Styles */
   .send-button {
     @apply h-[52px] w-[52px] rounded-xl bg-gradient-to-r from-orange-500 to-orange-600;
     @apply shadow-lg transition-all duration-200 hover:from-orange-600 hover:to-orange-700;
-    @apply hover:shadow-xl hover:scale-105 disabled:from-gray-600 disabled:to-gray-600;
-    @apply disabled:cursor-not-allowed disabled:shadow-none disabled:scale-100;
+    @apply hover:scale-105 hover:shadow-xl disabled:from-gray-600 disabled:to-gray-600;
+    @apply disabled:scale-100 disabled:cursor-not-allowed disabled:shadow-none;
   }
 
   .send-button:active {
@@ -424,7 +453,9 @@
   /* Focus visible improvements */
   .focus-visible-ring:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--color-chai-orange-500), 0 0 0 4px rgba(0, 0, 0, 0.1);
+    box-shadow:
+      0 0 0 2px var(--color-chai-orange-500),
+      0 0 0 4px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -452,7 +483,8 @@
 
   /* Optimized loading animations */
   @keyframes optimized-pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
     }
     50% {
@@ -461,7 +493,8 @@
   }
 
   @keyframes optimized-bounce {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0);
       animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
     }
@@ -538,11 +571,18 @@
   }
 
   /* Ensure proper line height for readability */
-  p, div, span {
+  p,
+  div,
+  span {
     line-height: 1.6;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     line-height: 1.3;
   }
 
@@ -592,7 +632,7 @@
   }
 
   .nav-link::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: -4px;
     left: 0;
@@ -643,7 +683,8 @@
   }
 
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1);
       opacity: 1;
     }

@@ -387,9 +387,9 @@ const LandingPage = () => {
                     ))}
                   </div>
                   <p className="leading-relaxed text-gray-300">
-                    &quot;The instant responses and code examples saved me
-                    hours of debugging. It&apos;s like having Hitesh sir
-                    available 24/7!&quot;
+                    &quot;The instant responses and code examples saved me hours
+                    of debugging. It&apos;s like having Hitesh sir available
+                    24/7!&quot;
                   </p>
                   <div className="flex items-center gap-3">
                     <AvatarEnhanced

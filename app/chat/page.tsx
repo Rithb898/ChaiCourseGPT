@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Bot,
   User,
+  Filter,
 } from "lucide-react";
 import { SourceCard } from "@/components/SourceCard";
 import { AvatarEnhanced } from "@/components/ui/avatar-enhanced";
@@ -27,6 +28,9 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { utils } from "@/lib/design-system";
 import Image from "next/image";
 import Link from "next/link";
+import CourseFilter from "@/components/CourseFilter";
+
+export type CourseType = "all" | "nodejs" | "python";
 
 interface Source {
   id: string;
@@ -45,9 +49,9 @@ interface Message {
   sources?: Source[];
   timestamp?: Date;
   status?: "sending" | "sent" | "error";
+  courseFilter?: CourseType;
 }
 
-// Memoized Message Component for Performance
 const MessageComponent = memo(
   ({
     message,
@@ -302,12 +306,14 @@ const HomePage = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [userHasScrolled, setUserHasScrolled] = useState(false);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<CourseType>("all");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Format timestamp for display
-  const formatTimestamp = (date: Date) => {
+  // Format timestamp for display - memoized to prevent recreations
+  const formatTimestamp = useCallback((date: Date) => {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
@@ -316,9 +322,9 @@ const HomePage = () => {
     if (minutes < 60) return `${minutes}m ago`;
     if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`;
     return date.toLocaleDateString();
-  };
+  }, []);
 
-  // Copy message content to clipboard
+  // Copy message content to clipboard - fixed dependencies
   const copyToClipboard = useCallback(
     async (content: string, messageId: string) => {
       try {
@@ -327,21 +333,34 @@ const HomePage = () => {
         setTimeout(() => setCopiedMessageId(null), 2000);
       } catch (err) {
         console.error("Failed to copy text: ", err);
+        // Fallback for older browsers
+        const textArea = document.createElement("textarea");
+        textArea.value = content;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand("copy");
+          setCopiedMessageId(messageId);
+          setTimeout(() => setCopiedMessageId(null), 2000);
+        } catch (fallbackErr) {
+          console.error("Fallback copy failed: ", fallbackErr);
+        }
+        document.body.removeChild(textArea);
       }
     },
-    [],
+    [], // No dependencies needed as it only uses parameters
   );
 
-  // Auto-resize textarea
+  // Auto-resize textarea - fixed dependencies
   const adjustTextareaHeight = useCallback(() => {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = "auto";
       textarea.style.height = Math.min(textarea.scrollHeight, 128) + "px";
     }
-  }, []);
+  }, []); // No dependencies needed
 
-  // Clear error after timeout
+  // Clear error after timeout - improved cleanup
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(null), 5000);
@@ -349,17 +368,17 @@ const HomePage = () => {
     }
   }, [error]);
 
-  // Check if user is near bottom of scroll
+  // Check if user is near bottom of scroll - memoized
   const isNearBottom = useCallback(() => {
     if (!messagesContainerRef.current) return true;
     const { scrollTop, scrollHeight, clientHeight } =
       messagesContainerRef.current;
-    return scrollHeight - scrollTop - clientHeight < 100; // Within 100px of bottom
+    return scrollHeight - scrollTop - clientHeight < 100;
   }, []);
 
-  // Handle scroll events to detect manual scrolling
+  // Handle scroll events - fixed dependencies
   const handleScroll = useCallback(() => {
-    if (!isStreaming) return; // Only track during streaming
+    if (!isStreaming) return;
 
     const nearBottom = isNearBottom();
     if (!nearBottom) {
@@ -367,12 +386,11 @@ const HomePage = () => {
     }
   }, [isStreaming, isNearBottom]);
 
-  // Smart scroll to bottom - only when appropriate
+  // Smart scroll to bottom - fixed dependencies
   const scrollToBottom = useCallback(
     (force = false) => {
       if (!messagesEndRef.current) return;
 
-      // Don't scroll if user has manually scrolled up during streaming
       if (isStreaming && userHasScrolled && !force) return;
 
       messagesEndRef.current.scrollIntoView({
@@ -383,12 +401,12 @@ const HomePage = () => {
     [isStreaming, userHasScrolled],
   );
 
-  // Reset scroll tracking when streaming starts
+  // Reset scroll tracking - no dependencies needed
   const resetScrollTracking = useCallback(() => {
     setUserHasScrolled(false);
   }, []);
 
-  // Add scroll event listener to detect manual scrolling
+  // Add scroll event listener - improved cleanup
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -397,8 +415,7 @@ const HomePage = () => {
     return () => container.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
-  // Auto-scroll only when user sends a new message (before AI response)
-  // This effect is intentionally minimal to give users full scroll control
+  // Auto-scroll effect - improved dependencies
   useEffect(() => {
     if (shouldAutoScroll) {
       const timeoutId = setTimeout(() => {
@@ -409,187 +426,243 @@ const HomePage = () => {
     }
   }, [shouldAutoScroll, scrollToBottom]);
 
-  const sendMessage = async (content: string) => {
-    if (!content.trim()) return;
-
-    // Clear any existing errors
-    setError(null);
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content,
-      timestamp: new Date(),
-      status: "sending",
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
+  }, []);
 
-    setMessages((prev) => [...prev, userMessage]);
-    setLoading(true);
-    setIsStreaming(false); // Reset streaming state
-    resetScrollTracking(); // Reset scroll tracking for new conversation
-    setShouldAutoScroll(true); // Trigger auto-scroll for user message
+  const sendMessage = useCallback(
+    async (content: string) => {
+      if (!content.trim()) return;
 
-    // Update message status to sent
-    setTimeout(() => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === userMessage.id ? { ...msg, status: "sent" as const } : msg,
-        ),
-      );
-    }, 100);
+      // Abort any ongoing request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
 
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: [...messages, userMessage].map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        }),
-      });
+      // Create new abort controller
+      abortControllerRef.current = new AbortController();
 
-      if (!response.body) throw new Error("No response body");
+      setError(null);
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "",
-        sources: [],
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content,
         timestamp: new Date(),
         status: "sending",
+        courseFilter: selectedCourse,
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
-      setIsStreaming(true); // Start streaming
+      setMessages((prev) => [...prev, userMessage]);
+      setLoading(true);
+      setIsStreaming(false);
+      resetScrollTracking();
+      setShouldAutoScroll(true);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // Update message status to sent
+      setTimeout(() => {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === userMessage.id
+              ? { ...msg, status: "sent" as const }
+              : msg,
+          ),
+        );
+      }, 100);
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
+      try {
+        console.log(`🚀 Sending request with courseFilter: ${selectedCourse}`); // Debug log
+        const startTime = performance.now();
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: [...messages, userMessage].map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
+            courseFilter: selectedCourse, // ✅ CRITICAL: This was missing
+          }),
+          signal: abortControllerRef.current.signal,
+        });
+        const endTime = performance.now();
+        console.log(
+          `⏱️ Response received in ${((endTime - startTime) / 1000).toFixed(
+            2,
+          )} seconds`,
+        );
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-              if (data.type === "sources") {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessage.id
-                      ? { ...msg, sources: data.data }
-                      : msg,
-                  ),
-                );
-              } else if (data.type === "text") {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessage.id
-                      ? { ...msg, content: msg.content + data.data }
-                      : msg,
-                  ),
-                );
-              } else if (data.type === "done") {
-                setLoading(false);
-                setIsStreaming(false); // End streaming
-                // Update assistant message status to sent
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessage.id
-                      ? { ...msg, status: "sent" as const }
-                      : msg,
-                  ),
-                );
-                // No auto-scroll after streaming - let users control their scroll position
-              } else if (data.type === "error") {
-                console.error("Stream error:", data.data);
-                setError(
-                  "Sorry, I encountered an error while processing your request. Please try again.",
-                );
-                setLoading(false);
-                setIsStreaming(false); // End streaming on error
-                // Update assistant message status to error
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessage.id
-                      ? { ...msg, status: "error" as const }
-                      : msg,
-                  ),
-                );
+        if (!response.body) throw new Error("No response body");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "",
+          sources: [],
+          timestamp: new Date(),
+          status: "sending",
+          courseFilter: selectedCourse,
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
+        setIsStreaming(true);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                if (data.type === "sources") {
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessage.id
+                        ? { ...msg, sources: data.data }
+                        : msg,
+                    ),
+                  );
+                } else if (data.type === "text") {
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessage.id
+                        ? { ...msg, content: msg.content + data.data }
+                        : msg,
+                    ),
+                  );
+                } else if (data.type === "done") {
+                  setLoading(false);
+                  setIsStreaming(false);
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessage.id
+                        ? { ...msg, status: "sent" as const }
+                        : msg,
+                    ),
+                  );
+                } else if (data.type === "error") {
+                  console.error("Stream error:", data.data);
+                  setError(
+                    "Sorry, I encountered an error while processing your request. Please try again.",
+                  );
+                  setLoading(false);
+                  setIsStreaming(false);
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessage.id
+                        ? { ...msg, status: "error" as const }
+                        : msg,
+                    ),
+                  );
+                }
+              } catch (e) {
+                console.debug("Chunk parsing error:", e);
               }
-            } catch (e) {
-              // Ignore parsing errors for incomplete chunks
-              console.debug(
-                "Chunk parsing error (expected for incomplete data):",
-                e,
-              );
             }
           }
         }
+      } catch (error: unknown) {
+        // Handle abort errors gracefully
+        if (error instanceof Error && error.name === "AbortError") {
+          console.log("Request was aborted");
+          return;
+        }
+
+        console.error("Error:", error);
+        setLoading(false);
+        setIsStreaming(false);
+
+        const errorMsg =
+          error instanceof Error
+            ? `Connection error: ${error.message}`
+            : "Sorry, I encountered an error while processing your request. Please try again.";
+
+        setError(errorMsg);
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === userMessage.id
+              ? { ...msg, status: "error" as const }
+              : msg,
+          ),
+        );
+
+        const errorMessage: Message = {
+          id: (Date.now() + 2).toString(),
+          role: "assistant",
+          content:
+            "Haan ji, kuch technical issue aa gaya hai. Please try again or refresh the page if the problem persists.",
+          timestamp: new Date(),
+          status: "error",
+        };
+        setMessages((prev) => [...prev, errorMessage]);
       }
-    } catch (error) {
-      console.error("Error:", error);
-      setLoading(false);
-      setIsStreaming(false); // End streaming on error
+    },
+    [messages, resetScrollTracking, selectedCourse],
+  ); // Added missing dependencies
 
-      // Set user-friendly error message
-      const errorMsg =
-        error instanceof Error
-          ? `Connection error: ${error.message}`
-          : "Sorry, I encountered an error while processing your request. Please try again.";
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!input.trim() || loading) return;
 
-      setError(errorMsg);
+      const message = input.trim();
+      setInput("");
 
-      // Update user message status to error
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === userMessage.id
-            ? { ...msg, status: "error" as const }
-            : msg,
-        ),
-      );
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
 
-      // Add error message to chat with retry option
-      const errorMessage: Message = {
-        id: (Date.now() + 2).toString(),
-        role: "assistant",
-        content:
-          "Haan ji, kuch technical issue aa gaya hai. Please try again or refresh the page if the problem persists.",
-        timestamp: new Date(),
-        status: "error",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      sendMessage(message);
+    },
+    [input, loading, sendMessage],
+  );
+
+  // Handle input change with auto-resize - fixed dependencies
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setInput(e.target.value);
+      adjustTextareaHeight();
+    },
+    [adjustTextareaHeight],
+  );
+
+  // Memoize placeholder text to prevent unnecessary re-renders
+  const placeholderText = useMemo(() => {
+    if (loading) return "Processing...";
+
+    const courseSpecificText = {
+      all: "Ask me about any course content...",
+      nodejs: "Ask me about Node.js concepts...",
+      python: "Ask me about Python programming...",
+    };
+
+    const baseText = courseSpecificText[selectedCourse];
+
+    if (typeof window !== "undefined" && window.innerWidth < 640) {
+      return baseText;
     }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
-
-    const message = input.trim();
-    setInput("");
-
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-
-    sendMessage(message);
-  };
-
-  // Handle input change with auto-resize
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-    adjustTextareaHeight();
-  };
+    return `${baseText} (Haan ji, kuch bhi puch sakte hain!)`;
+  }, [loading, selectedCourse]);
 
   return (
     <div
@@ -606,7 +679,8 @@ const HomePage = () => {
       >
         Skip to message input
       </a>
-      {/* Accessible Error Notification */}
+
+      {/* Error Notification */}
       {error && (
         <div
           className="fixed top-4 right-4 z-50 max-w-md"
@@ -652,9 +726,9 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Enhanced Accessible Header */}
+      {/* Header */}
       <header
-        className="border-b border-gray-800 px-4 py-3 shadow-xl backdrop-blur-sm sm:px-6 sm:py-4"
+        className="border-b border-gray-800 px-4 py-3 shadow-xl backdrop-blur-sm sm:px-12 sm:py-4"
         style={{
           background: "linear-gradient(135deg, #1a1a1a 0%, #1f1f1f 100%)",
           borderImage:
@@ -695,7 +769,7 @@ const HomePage = () => {
               ChaiCourseGPT
               <span
                 className="ml-2 hidden text-sm font-normal text-orange-400 sm:inline"
-                aria-label="Version 2.0"
+                aria-label="Version 1.0"
               >
                 v1.0
               </span>
@@ -706,27 +780,33 @@ const HomePage = () => {
               aria-describedby="app-title"
             >
               <span className="hidden sm:inline">
-                Your AI coding cource assistant •{" "}
+                Your AI coding course assistant •{" "}
               </span>
               <span className="text-orange-400">
                 Powered by Hitesh Choudhary
               </span>
             </p>
           </div>
-          <div className="hidden items-center gap-2 text-sm text-gray-500 sm:flex">
-            <div className="flex items-center gap-1">
-              <div className="h-2 w-2 rounded-full bg-green-500"></div>
-              <span>Online</span>
-            </div>
+
+          {/* Course Filter - Desktop */}
+          <div className="hidden lg:block">
+            <CourseFilter
+              selectedCourse={selectedCourse}
+              onCourseChange={setSelectedCourse}
+            />
           </div>
-          {/* Mobile menu button placeholder for future use */}
-          <div className="sm:hidden">
-            <div className="h-2 w-2 rounded-full bg-green-500"></div>
+
+          {/* Course Filter - Mobile */}
+          <div className="mt-3 lg:hidden">
+            <CourseFilter
+              selectedCourse={selectedCourse}
+              onCourseChange={setSelectedCourse}
+            />
           </div>
         </div>
       </header>
 
-      {/* Accessible Messages Area */}
+      {/* Messages Area */}
       <main
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-6"
@@ -778,7 +858,9 @@ const HomePage = () => {
                   <span className="font-medium text-orange-400">
                     Seedhi si baat hai
                   </span>{" "}
-                  - ask me anything about your course content!
+                  - ask me anything about your{" "}
+                  {selectedCourse === "all" ? "course" : selectedCourse}{" "}
+                  content!
                 </p>
               </div>
 
@@ -822,7 +904,8 @@ const HomePage = () => {
                     Learn Faster
                   </h3>
                   <p className="text-xs text-gray-400 sm:text-sm">
-                    Get personalized explanations in Hitesh&apos;s teaching style
+                    Get personalized explanations in Hitesh&apos;s teaching
+                    style
                   </p>
                 </CardEnhanced>
 
@@ -845,7 +928,8 @@ const HomePage = () => {
               <div className="mt-8 rounded-xl border border-orange-500/20 bg-gradient-to-r from-orange-500/10 to-orange-600/10 p-4">
                 <p className="text-sm text-orange-200">
                   <span className="font-semibold">Pro Tip:</span> Try asking
-                  &quot;How to setup venv in python?&quot; or &quot;what is fs module in nodejs?&quot;
+                  &quot;How to setup venv in python?&quot; or &quot;what is fs
+                  module in nodejs?&quot;
                 </p>
               </div>
             </div>
@@ -853,13 +937,49 @@ const HomePage = () => {
         ) : (
           <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6">
             {messages.map((message) => (
-              <MessageComponent
-                key={message.id}
-                message={message}
-                formatTimestamp={formatTimestamp}
-                copyToClipboard={copyToClipboard}
-                copiedMessageId={copiedMessageId}
-              />
+              <div key={message.id}>
+                {/* Show course filter badge for user messages */}
+                {message.role === "user" &&
+                  message.courseFilter &&
+                  message.courseFilter !== "all" && (
+                    <div className="mb-2 flex justify-end">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${message.courseFilter === "nodejs" ? "bg-green-600/20 text-green-400" : "bg-blue-600/20 text-blue-400"} `}
+                      >
+                        {message.courseFilter === "nodejs" ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <Image
+                              src="/nodejs.svg"
+                              alt="Node.js"
+                              width={16}
+                              height={16}
+                              className="inline-block h-4 w-4"
+                            />
+                            NodeJS
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-1">
+                            <Image
+                              src="/python.svg"
+                              alt="Python"
+                              width={16}
+                              height={16}
+                              className="inline-block h-4 w-4"
+                            />
+                            Python
+                          </div>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                <MessageComponent
+                  key={message.id}
+                  message={message}
+                  formatTimestamp={formatTimestamp}
+                  copyToClipboard={copyToClipboard}
+                  copiedMessageId={copiedMessageId}
+                />
+              </div>
             ))}
 
             {loading && (
@@ -875,7 +995,6 @@ const HomePage = () => {
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.style.display = "none";
-                        // Show fallback Bot icon
                         const parent = target.parentElement;
                         if (parent) {
                           parent.innerHTML =
@@ -888,11 +1007,6 @@ const HomePage = () => {
                 </div>
                 <div className="message-bubble-assistant">
                   <div className="flex items-center gap-2">
-                    <div className="loading-dots">
-                      <div className="loading-dot"></div>
-                      <div className="loading-dot"></div>
-                      <div className="loading-dot"></div>
-                    </div>
                     <span className="animate-pulse text-xs text-gray-400">
                       Thinking...
                     </span>
@@ -934,7 +1048,7 @@ const HomePage = () => {
         )}
       </main>
 
-      {/* Enhanced Accessible Input Area */}
+      {/* Input Area */}
       <footer
         className="border-t border-gray-800 px-3 py-4 backdrop-blur-sm sm:px-4 sm:py-6"
         style={{
@@ -961,13 +1075,7 @@ const HomePage = () => {
               onChange={handleInputChange}
               disabled={loading}
               className="chat-input text-sm sm:text-base"
-              placeholder={
-                loading
-                  ? "Processing..."
-                  : typeof window !== "undefined" && window.innerWidth < 640
-                    ? "Ask me anything..."
-                    : "Ask me about the course content... (Haan ji, kuch bhi puch sakte hain!)"
-              }
+              placeholder={placeholderText}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && !loading) {
                   e.preventDefault();
@@ -988,11 +1096,6 @@ const HomePage = () => {
                 <span className={input.length > 900 ? "text-orange-400" : ""}>
                   {input.length}/1000
                 </span>
-              </div>
-            )}
-            {error && (
-              <div className="absolute -top-8 right-0 left-0 rounded bg-red-500/10 px-2 py-1 text-xs text-red-400">
-                {error}
               </div>
             )}
           </div>
